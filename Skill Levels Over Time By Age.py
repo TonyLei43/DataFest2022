@@ -76,7 +76,7 @@ fig.delaxes(axes[2, 1]) # deletes 6th subplot
 fig.suptitle("Skill Levels Over Time By Age")
 plt.tight_layout() # avoids overlap of subplot axes
 plt.show()
-fig.savefig("/Users/Terru/Desktop/DataFest/Skill Levels Over Time By Age.png", dpi=300)
+fig.savefig("Skill Levels Over Time By Age.png", dpi=300)
 
 # Refusal Skill graph only
 refusal_graph = sns.lineplot(x="event_time_dbl", y="skill_level_refusal", hue="avatar_age", palette=palette, data=skills_over_time_by_age)
@@ -86,4 +86,4 @@ refusal_graph.set_xlabel("Time (s)")
 plt.legend(title="Age", loc="upper left", labels=["11", "12", "13", "14"], title_fontsize=12, fontsize=12)
 
 plt.show()
-refusal_graph.figure.savefig("/Users/Terru/Desktop/DataFest/Refusal Skill Over Time By Age.png", dpi=300)
+refusal_graph.figure.savefig("Refusal Skill Over Time By Age.png", dpi=300)
