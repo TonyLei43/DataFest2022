@@ -1,0 +1,246 @@
+---
+title: "DataFest"
+author: "Derek Nakagawa"
+date: "4/29/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(stringr)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(stringi)
+library(ggrepel)
+
+mydata <- read_csv("logs.csv", guess_max = 2106600)
+
+```
+
+Creating different data tables for analysis
+
+```{r setup, include=FALSE}
+otherdata <- read.csv("S5_scores_cleaned.csv")
+
+
+#-----------------------------------------------------------------------------------------------------
+# Data Collecting for different schools
+school_id <- mydata %>%
+  select(school, player_id) %>%
+  distinct()
+yay <- merge(school_id, otherdata)
+
+data_week <- yay %>%
+  group_by(weeks) %>%
+  summarise(
+    count = n(),
+    mean_val = mean(S5_mean)
+     )
+
+data_each_school <- yay %>%
+  group_by(weeks, school) %>%
+  summarise(
+    count = n(),
+    mean_val = mean(S5_mean)
+     )
+
+
+#-----------------------------------------------------------------------------------------------------
+# Data Collecting for Schools with at least 2 participants
+at_least_2_students <- data_each_school %>%
+  filter(school == "0647" | school == "1827" | school == "3561" | school == "5340" | school == "7167" | school == "9691")
+
+
+#-----------------------------------------------------------------------------------------------------
+# Data Collecting for Ethnicity
+ethnicity_data <- mydata[complete.cases(mydata$avatar_id),]
+
+ethnicity2 <- ethnicity_data %>%
+  select(avatar_id, player_id) %>%
+  distinct()
+merged_ethnicity <- merge(ethnicity2, otherdata)
+merged_ethnicity
+
+data_ethnicity <- merged_ethnicity %>%
+  group_by(weeks, avatar_id) %>%
+  summarise(
+    count = n(),
+    mean_val = mean(S5_mean)
+     )
+
+
+#------------------------------------------------------------------------------------------
+# Data Collecting for Age
+age_data <- mydata[complete.cases(mydata$avatar_age),]
+
+age2 <- age_data %>%
+  select(avatar_age, player_id) %>%
+  distinct()
+merged_age <- merge(age2, otherdata)
+
+data_age <- merged_age %>%
+  group_by(weeks, avatar_age) %>%
+  summarise(
+    count = n(),
+    mean_val = mean(S5_mean)
+     )
+
+
+
+#------------------------------------------------------------------------------------------
+# Data Collecting for Gender
+length(unique(otherdata$player_id))
+
+gender_data <- mydata[complete.cases(mydata$avatar_gender),]
+
+gender2 <- gender_data %>%
+  select(avatar_gender, player_id) %>%
+  distinct()
+merged_gender <- merge(gender2, otherdata)
+
+data_gender <- merged_gender %>%
+  group_by(weeks, avatar_gender) %>%
+  summarise(
+    count = n(),
+    mean_val = mean(S5_mean)
+     )
+
+
+
+#----------------------------------------------------------------------------------------------
+# Data Collecting for amount of time playing the game
+num_player <- num_player[-length(num_player)]
+
+weeks_data <- otherdata
+weeks_data$max_weeks <- 0
+
+new_table <- data.frame(
+  player_id = NA, weeks = NA, S5_mean = NA, max_weeks = NA)
+
+for( i in 1:length(num_player)){
+  table <- weeks_data %>%
+    filter(player_id == num_player[i])
+  table$max_weeks <- max(table$weeks)
+  new_table <- rbind(new_table, table)
+}
+new_table <- new_table[-1, ]
+
+data_time <- new_table %>%
+  group_by(weeks, max_weeks) %>%
+  summarise(
+    count = n(),
+    mean_val = mean(S5_mean)
+     )
+
+
+
+```
+
+
+Test Graphs to see if there is any correlations between ethnicity, gender, school, or amount of time playing the game.
+
+```{r setup, include=FALSE}
+
+# graph for all of the schools
+ggplot(data_each_school, aes(x=weeks, y=mean_val, color = school)) +
+  geom_point(stat = "identity")+
+  geom_line() +
+  facet_wrap( ~ school, ncol = 3) +
+  geom_text(aes(label = count), vjust = 1.1, position = position_dodge(.9), size = 4) +
+  labs(
+    x = "Number of Weeks",
+    y = "Mean Value of Refusal Test Scores",
+    title = "How Do the Refusal Test Scores Change Over Time?",
+    color = "School ID"
+  )
+
+
+# graph for schools larger than 2 students
+ggplot(at_least_2_students, aes(x=weeks, y=mean_val, color = school)) +
+  geom_point(stat = "identity")+
+  geom_line() +
+  facet_wrap( ~ school, ncol = 3) +
+  geom_text(aes(label = count), vjust = 1.1, position = position_dodge(.9), size = 4) +
+  labs(
+    x = "Number of Weeks",
+    y = "Mean Value of Refusal Test Scores",
+    title = "How Do the Refusal Test Scores Change Over Time?",
+    color = "School ID"
+  )
+
+
+# graph for etnicities
+ggplot(data_ethnicity, aes(x=weeks, y=mean_val, color = avatar_id)) +
+  geom_point(stat = "identity") +
+  geom_line() +
+  facet_wrap( ~ avatar_id, ncol = 2) +
+  geom_text(aes(label = count), vjust = 1.3, position = position_dodge(.9), size = 4) +
+  labs(
+    x = "Number of Weeks",
+    y = "Mean Value of Refusal Test Scores",
+    title = "How Do the Refusal Test Scores Change Over Time?",
+    color = "Ethnicity"
+  )
+
+
+# graph for gender
+ggplot(data_gender, aes(x=weeks, y=mean_val, color = avatar_gender)) +
+  geom_point(stat = "identity")+
+  geom_line() +
+  facet_wrap( ~ avatar_gender, ncol = 2) +
+  geom_text(aes(label = count), vjust = 1.3, position = position_dodge(.9), size = 4) +
+  labs(
+    x = "Number of Weeks",
+    y = "Mean Value of Refusal Test Scores",
+    title = "How Do the Refusal Test Scores Change Over Time?",
+    color = "Gender"
+  )
+
+
+# graph for time
+ggplot(data_time, aes(x=weeks, y=mean_val, color = max_weeks)) +
+  geom_point(stat = "identity")+
+  geom_line() +
+  facet_wrap( ~ max_weeks, ncol = 2) +
+  geom_text(aes(label = count), vjust = 1.3, position = position_dodge(.9), size = 4) +
+  labs(
+    x = "Number of Weeks",
+    y = "Mean Value of Refusal Test Scores",
+    title = "How Do the Refusal Test Scores Change Over Time?",
+    color = "Time"
+  )
+
+
+
+data_ethnicity
+
+
+```
+
+
+Actual Graph for the Presentation: Finding the average Drug Refusal Test Scores for different age groups across a span of weeks after playing Elm Story (teaches students about drug/alcohol abuse)
+
+```{r setup}
+
+# graph for ages
+data_age$avatar_age <- rep(c("11 Year Old", "12 Year Old", "13 Year Old", "14 Year Old"), 5)
+  
+ggplot(data_age, aes(x=weeks, y=mean_val, color = avatar_age)) +
+  geom_point(stat = "identity") +
+  geom_line(size = 1) +
+  scale_color_manual(values = c("#223127", "#9C0D38", "#CE5374", "#A14EE4")) +
+  facet_wrap( ~ avatar_age, ncol = 2) +
+  theme(legend.position = "none") +
+  theme(strip.text.x = element_text(size = 12), axis.title = element_text(size = 11), plot.title = element_text(size = 18)) +
+  geom_label_repel(aes(label = count),
+                  box.padding   = 0.1, 
+                  point.padding = 0.3) +
+  labs(
+    x = "Number of Weeks",
+    y = "Mean Value of Refusal Test Scores",
+    title = "How Does the Refusal Test Differ Between Ages?",
+    color = "Age"
+  )
+
+
+```
